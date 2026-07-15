@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from dream_palace.agents import Orchestrator
-from dream_palace.domain import IncomingMessage, Intent, UserContext
+from dream_palace.shared.domain import IncomingMessage, Intent, UserContext
 
 
 class FakeStore:
