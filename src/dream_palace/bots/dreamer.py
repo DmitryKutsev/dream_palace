@@ -1,18 +1,12 @@
-import asyncio
-
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 
 from dream_palace.agents import Orchestrator
-from dream_palace.config import get_settings
 from dream_palace.domain import IncomingMessage
-from dream_palace.storage import FirebaseDreamStore
+from dream_palace.storage import DreamStore
 
 
-async def main() -> None:
-    settings = get_settings()
-    bot = Bot(settings.dreamer_bot_token)
-    store = FirebaseDreamStore(settings.google_cloud_project, settings.firebase_storage_bucket)
+def build_dispatcher(bot: Bot, store: DreamStore) -> Dispatcher:
     orchestrator = Orchestrator(store)
     dispatcher = Dispatcher()
 
@@ -41,8 +35,4 @@ async def main() -> None:
         except PermissionError:
             await message.answer("Access is pending. Register with The Dreamer Clerk first.")
 
-    await dispatcher.start_polling(bot)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    return dispatcher
