@@ -21,7 +21,9 @@ class FirebaseDreamStore:
     """Tenant-scoped storage; public methods derive paths only from active user context."""
 
     def __init__(self, project_id: str, bucket_name: str) -> None:
-        if not firebase_admin._apps:
+        try:
+            firebase_admin.get_app()
+        except ValueError:
             firebase_admin.initialize_app(options={"projectId": project_id})
         self._db = firestore.client()
         self._bucket = storage.Client(project=project_id).bucket(bucket_name)
