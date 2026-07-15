@@ -1,0 +1,1 @@
+"""Dream Palace application."""
