@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Dream Palace local and Terraform state
+*.tfstate*
+.terraform/
+service-account.json
