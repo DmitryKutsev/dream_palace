@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     firebase_storage_bucket: str
     adk_model: str = "gemini-2.0-flash"
     webhook_secret: str = ""
-    webhook_base_url: str = ""
 
     @property
     def admins(self) -> frozenset[int]:
