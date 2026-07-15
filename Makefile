@@ -9,6 +9,6 @@ test:
 	uv run pytest
 check: lint test terraform-fmt
 run:
-	uv run uvicorn dream_palace.webhook:app --reload --port 8080
+	uv run uvicorn dream_palace.app:app --reload --port 8080
 terraform-fmt:
 	terraform fmt -check -recursive infra
