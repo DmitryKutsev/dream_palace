@@ -4,10 +4,11 @@ Telegram-first private dream journal using Google ADK, Firebase/Firestore, and G
 
 ## Structure
 
-- `src/dream_palace/bots`: Clerk registration and Dreamer ingestion bots
-- `src/dream_palace/agents.py`: conservative routing and tenant-safe tools
-- `src/dream_palace/adk_app.py`: Google ADK agent definition
-- `src/dream_palace/storage.py`: Firestore metadata and GCS media adapter
+- `src/dream_palace/app.py`: application composition root and ASGI entrypoint
+- `src/dream_palace/agents`: Google ADK agent, prompts, and conservative orchestration
+- `src/dream_palace/tools`: tenant-safe Firestore and GCS tools
+- `src/dream_palace/interface/telegram`: Clerk, Dreamer, and webhook interface
+- `src/dream_palace/shared`: configuration and domain types
 - `infra`: Terraform for Google APIs, storage, and workload identity
 - `.github/workflows`: UV/pytest CI and keyless deployment scaffold
 - `docs/DEVELOPMENT_PLAN.md`: reviewed delivery plan and security decisions
@@ -26,7 +27,7 @@ deployment.
 
 ## Telegram webhook setup
 
-Deploy the ASGI app (`dream_palace.webhook:app`) to an HTTPS endpoint, for example Cloud Run,
+Deploy the ASGI app (`dream_palace.app:app`) to an HTTPS endpoint, for example Cloud Run,
 and set `WEBHOOK_BASE_URL` and a long random `WEBHOOK_SECRET`. Register each bot webhook:
 
 ```bash
