@@ -9,12 +9,6 @@ class ApprovalStatus(StrEnum):
     REJECTED = "rejected"
 
 
-class Intent(StrEnum):
-    DREAM = "dream"
-    RETRIEVE = "retrieve"
-    ANALYSE = "analyse"
-
-
 @dataclass(frozen=True)
 class IncomingMessage:
     telegram_id: int

@@ -4,4 +4,4 @@ COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 RUN uv sync --frozen --no-dev
 ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uvicorn", "dream_palace.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["sh", "-c", "uvicorn dream_palace.app:app --host 0.0.0.0 --port ${PORT:-8080}"]

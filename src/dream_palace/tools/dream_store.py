@@ -14,7 +14,12 @@ from dream_palace.shared.domain import ApprovalStatus, IncomingMessage, UserCont
 class DreamStore(Protocol):
     def is_approved(self, context: UserContext) -> bool: ...
     def save_dream(self, context: UserContext, message: IncomingMessage) -> str: ...
-    def list_dreams(self, context: UserContext) -> list[dict[str, Any]]: ...
+    def list_dreams(
+        self,
+        context: UserContext,
+        since: datetime | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]: ...
 
 
 class FirebaseDreamStore:
@@ -65,8 +70,23 @@ class FirebaseDreamStore:
         )
         return dream_id
 
-    def list_dreams(self, context: UserContext) -> list[dict[str, Any]]:
-        query = self._dreams(context).order_by("received_at")
+    def get_user(self, telegram_id: int) -> dict[str, Any] | None:
+        snapshot = self._db.collection("users").document(str(telegram_id)).get()
+        return snapshot.to_dict() if snapshot.exists else None
+
+    def list_dreams(
+        self,
+        context: UserContext,
+        since: datetime | None = None,
+        limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        query = self._dreams(context).order_by(
+            "received_at", direction=firestore.Query.DESCENDING
+        )
+        if since is not None:
+            query = query.where(filter=firestore.FieldFilter("received_at", ">=", since))
+        if limit is not None:
+            query = query.limit(limit)
         return [{"id": row.id, **row.to_dict()} for row in query.stream()]
 
     def _dreams(self, context: UserContext):

@@ -5,13 +5,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    clerk_bot_token: str
-    dreamer_bot_token: str
+    bot_token: str
     admin_telegram_ids: str
     google_cloud_project: str
     firebase_storage_bucket: str
     adk_model: str = "gemini-2.0-flash"
     webhook_secret: str
+    webapp_url: str = ""
+    google_api_key: str = ""
 
     @property
     def admins(self) -> frozenset[int]:

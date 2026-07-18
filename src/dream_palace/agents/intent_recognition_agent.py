@@ -1,6 +1,6 @@
 from google.adk.agents import Agent
 
-from dream_palace.agents.prompts import ORCHESTRATOR_INSTRUCTION
+from dream_palace.agents.prompts.orchestrator import ORCHESTRATOR_INSTRUCTION
 
 
 def build_agent(model: str) -> Agent:

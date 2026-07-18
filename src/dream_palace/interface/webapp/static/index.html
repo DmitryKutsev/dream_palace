@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dream Palace</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --fg: var(--tg-theme-text-color, #111111);
+    --hint: var(--tg-theme-hint-color, #777777);
+    --accent: var(--tg-theme-button-color, #3390ec);
+    --accent-fg: var(--tg-theme-button-text-color, #ffffff);
+    --card: var(--tg-theme-secondary-bg-color, #f2f2f7);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 1rem; font-family: system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  h1 { font-size: 1.3rem; margin: 0 0 1rem; }
+  button {
+    display: block; width: 100%; margin: .5rem 0; padding: .8rem;
+    border: 0; border-radius: .6rem; font-size: 1rem; cursor: pointer;
+    background: var(--accent); color: var(--accent-fg);
+  }
+  button.secondary { background: var(--card); color: var(--fg); }
+  input, select {
+    width: 100%; margin: .5rem 0; padding: .7rem; font-size: 1rem;
+    border: 1px solid var(--hint); border-radius: .6rem; background: var(--bg); color: var(--fg);
+  }
+  .card { background: var(--card); border-radius: .6rem; padding: .8rem; margin: .5rem 0; }
+  .card time { font-size: .8rem; color: var(--hint); display: block; margin-bottom: .3rem; }
+  .hint { color: var(--hint); font-size: .9rem; }
+  .hidden { display: none; }
+  #analysis { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>🏛 Dream Palace</h1>
+<div id="status" class="hint">Loading…</div>
+
+<section id="register-view" class="hidden">
+  <p>Register to start your dream journal. An administrator will approve your access.</p>
+  <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+  <button id="register-btn">Register</button>
+</section>
+
+<section id="home-view" class="hidden">
+  <button id="dreams-btn">Your dreams</button>
+</section>
+
+<section id="dreams-view" class="hidden">
+  <select id="period">
+    <option value="" selected>Last 5 dreams</option>
+    <option value="7">Last 7 days</option>
+    <option value="30">Last 30 days</option>
+    <option value="90">Last 90 days</option>
+  </select>
+  <div id="dream-list"></div>
+  <button id="analyse-btn">Analyse my dreams</button>
+  <div id="analysis" class="card hidden"></div>
+  <button id="back-btn" class="secondary">Back</button>
+</section>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+if (!tg.initData) {
+  document.getElementById("status").textContent =
+    "This page only works inside Telegram. Open the bot and press the “Open Dream Palace” button.";
+  throw new Error("opened outside Telegram");
+}
+
+const $ = (id) => document.getElementById(id);
+const show = (id) => {
+  for (const view of ["register-view", "home-view", "dreams-view"]) {
+    $(view).classList.toggle("hidden", view !== id);
+  }
+};
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `tma ${tg.initData}`,
+      ...(options.headers || {}),
+    },
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || `request failed (${response.status})`);
+  }
+  return response.json();
+}
+
+async function refresh() {
+  try {
+    const me = await api("/api/me");
+    if (!me.registered) {
+      $("status").textContent = "";
+      show("register-view");
+    } else if (me.status !== "approved") {
+      $("status").textContent = `Your registration is ${me.status}. Please wait for approval.`;
+      show("home-view");
+      $("dreams-btn").disabled = true;
+    } else {
+      $("status").textContent = `Signed in as ${tg.initDataUnsafe?.user?.first_name || "dreamer"}.`;
+      show("home-view");
+      $("dreams-btn").disabled = false;
+    }
+  } catch (error) {
+    $("status").textContent = `Error: ${error.message}`;
+  }
+}
+
+async function loadDreams() {
+  const days = $("period").value;
+  const query = days ? `?days=${days}&limit=100` : "";
+  const list = $("dream-list");
+  list.innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    const data = await api(`/api/dreams${query}`);
+    list.innerHTML = data.dreams.length ? "" : '<p class="hint">No dreams recorded yet.</p>';
+    for (const dream of data.dreams) {
+      const card = document.createElement("div");
+      card.className = "card";
+      const time = document.createElement("time");
+      time.textContent = dream.received_at;
+      const text = document.createElement("div");
+      text.textContent = dream.text || "(no text — media could not be transcribed)";
+      card.append(time, text);
+      list.append(card);
+    }
+  } catch (error) {
+    list.innerHTML = "";
+    $("status").textContent = `Error: ${error.message}`;
+  }
+}
+
+$("register-btn").onclick = async () => {
+  try {
+    $("register-btn").disabled = true;
+    await api("/api/register", { method: "POST", body: JSON.stringify({ email: $("email").value }) });
+    $("status").textContent = "Registration submitted — an administrator will approve you shortly.";
+    show("home-view");
+    $("dreams-btn").disabled = true;
+  } catch (error) {
+    $("status").textContent = `Error: ${error.message}`;
+    $("register-btn").disabled = false;
+  }
+};
+
+$("dreams-btn").onclick = () => { show("dreams-view"); loadDreams(); };
+$("period").onchange = loadDreams;
+$("back-btn").onclick = () => show("home-view");
+
+$("analyse-btn").onclick = async () => {
+  const box = $("analysis");
+  box.classList.remove("hidden");
+  box.textContent = "Analysing…";
+  try {
+    const days = Number($("period").value) || 30;
+    const data = await api("/api/analyse", { method: "POST", body: JSON.stringify({ days }) });
+    box.textContent = data.analysis;
+  } catch (error) {
+    box.textContent = `Error: ${error.message}`;
+  }
+};
+
+refresh();
+</script>
+</body>
+</html>

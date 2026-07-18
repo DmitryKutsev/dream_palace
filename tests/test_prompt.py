@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from dream_palace.agents.prompts import ORCHESTRATOR_INSTRUCTION
+from dream_palace.agents.prompts.orchestrator import ORCHESTRATOR_INSTRUCTION
 from dream_palace.interface.telegram.webhook import verify_webhook_secret
 
 
