@@ -294,24 +294,24 @@ resource "azurerm_function_app_flex_consumption" "api" {
   }
 
   app_settings = {
-    FUNCTIONS_EXTENSION_VERSION          = "~4"
-    FUNCTIONS_WORKER_RUNTIME             = "python"
-    AzureWebJobsStorage__accountName     = azurerm_storage_account.main.name
-    AzureWebJobsStorage__credential      = "managedidentity"
-    AzureWebJobsStorage__clientId        = azurerm_user_assigned_identity.runtime.client_id
-    BOT_TOKEN                            = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/bot-token)"
-    WEBHOOK_SECRET                       = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/telegram-webhook-secret)"
-    ADMIN_TELEGRAM_IDS                   = var.admin_telegram_ids
-    WEBAPP_URL                           = "${local.function_base_url}/app"
-    AZURE_CLIENT_ID                      = azurerm_user_assigned_identity.runtime.client_id
-    AZURE_STORAGE_ACCOUNT_URL            = azurerm_storage_account.main.primary_blob_endpoint
-    AZURE_STORAGE_CONTAINER              = azurerm_storage_container.dream_media.name
-    COSMOS_ENDPOINT                      = azurerm_cosmosdb_account.main.endpoint
-    COSMOS_DATABASE_NAME                 = azurerm_cosmosdb_sql_database.main.name
-    COSMOS_USERS_CONTAINER               = azurerm_cosmosdb_sql_container.users.name
-    COSMOS_DREAMS_CONTAINER              = azurerm_cosmosdb_sql_container.dreams.name
-    FOUNDRY_PROJECT_ENDPOINT             = local.foundry_project_endpoint
-    FOUNDRY_AGENT_NAME                   = "dream-analyst"
+    FUNCTIONS_EXTENSION_VERSION      = "~4"
+    FUNCTIONS_WORKER_RUNTIME         = "python"
+    AzureWebJobsStorage__accountName = azurerm_storage_account.main.name
+    AzureWebJobsStorage__credential  = "managedidentity"
+    AzureWebJobsStorage__clientId    = azurerm_user_assigned_identity.runtime.client_id
+    BOT_TOKEN                        = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/bot-token)"
+    WEBHOOK_SECRET                   = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/telegram-webhook-secret)"
+    ADMIN_TELEGRAM_IDS               = var.admin_telegram_ids
+    WEBAPP_URL                       = "${local.function_base_url}/app"
+    AZURE_CLIENT_ID                  = azurerm_user_assigned_identity.runtime.client_id
+    AZURE_STORAGE_ACCOUNT_URL        = azurerm_storage_account.main.primary_blob_endpoint
+    AZURE_STORAGE_CONTAINER          = azurerm_storage_container.dream_media.name
+    COSMOS_ENDPOINT                  = azurerm_cosmosdb_account.main.endpoint
+    COSMOS_DATABASE_NAME             = azurerm_cosmosdb_sql_database.main.name
+    COSMOS_USERS_CONTAINER           = azurerm_cosmosdb_sql_container.users.name
+    COSMOS_DREAMS_CONTAINER          = azurerm_cosmosdb_sql_container.dreams.name
+    FOUNDRY_PROJECT_ENDPOINT         = local.foundry_project_endpoint
+    FOUNDRY_AGENT_NAME               = "dream-analyst"
   }
 
   site_config {
