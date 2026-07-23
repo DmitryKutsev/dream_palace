@@ -1,0 +1,17 @@
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+.terraform/
+.venv/
+docs/
+hosted_agent/
+infra/
+scripts/
+tests/
+.env
+Dockerfile
+Makefile
+README.md
+pyproject.toml
+uv.lock

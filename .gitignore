@@ -209,4 +209,5 @@ __marimo__/
 # Dream Palace local and Terraform state
 *.tfstate*
 .terraform/
-service-account.json
+.azure/
+local.settings.json

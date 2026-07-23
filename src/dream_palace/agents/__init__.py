@@ -1,1 +1,1 @@
-"""Google ADK agents and deterministic orchestration boundaries."""
+"""Microsoft Foundry hosted-agent client boundaries."""

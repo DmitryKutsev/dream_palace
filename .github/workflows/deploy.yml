@@ -1,29 +1,53 @@
-name: Deploy
+name: Deploy Azure
+
 on:
   workflow_dispatch:
   push:
     branches: [main]
+
 permissions:
   contents: read
   id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
+
+      - name: Azure login
+        uses: azure/login@v3
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --frozen
-      - name: Deploy hosted ADK agent
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Flex Consumption function
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ vars.AZURE_FUNCTION_APP_NAME }}
+          package: .
+          remote-build: true
+          respect-funcignore: true
+
+      - name: Install Azure Developer CLI
+        uses: Azure/setup-azd@v2
+
+      - name: Authenticate Azure Developer CLI
+        run: >-
+          azd auth login
+          --client-id "${{ vars.AZURE_CLIENT_ID }}"
+          --tenant-id "${{ vars.AZURE_TENANT_ID }}"
+          --federated-credential-provider github
+
+      - name: Configure hosted-agent deployment
         run: |
-          gcloud run deploy dream-palace \
-            --source . \
-            --region "${{ vars.GCP_REGION }}" \
-            --service-account "${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --set-secrets "CLERK_BOT_TOKEN=clerk-bot-token:latest,DREAMER_BOT_TOKEN=dreamer-bot-token:latest,WEBHOOK_SECRET=telegram-webhook-secret:latest" \
-            --set-env-vars "GOOGLE_CLOUD_PROJECT=${{ vars.GCP_PROJECT }},FIREBASE_STORAGE_BUCKET=${{ vars.FIREBASE_STORAGE_BUCKET }},ADMIN_TELEGRAM_IDS=${{ vars.ADMIN_TELEGRAM_IDS }}" \
-            --allow-unauthenticated
+          azd ext install microsoft.foundry
+          azd env new ci --no-prompt
+          azd env set AZURE_SUBSCRIPTION_ID "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+          azd env set FOUNDRY_PROJECT_ENDPOINT "${{ vars.FOUNDRY_PROJECT_ENDPOINT }}"
+          azd env set AZURE_AI_MODEL_DEPLOYMENT_NAME "${{ vars.FOUNDRY_MODEL_DEPLOYMENT_NAME }}"
+
+      - name: Deploy Foundry hosted analyst
+        run: azd deploy --service dream-analyst --no-prompt
