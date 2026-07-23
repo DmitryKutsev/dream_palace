@@ -165,18 +165,10 @@ resource "azurerm_key_vault" "main" {
   resource_group_name        = azurerm_resource_group.main.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  enable_rbac_authorization  = true
+  rbac_authorization_enabled = true
   purge_protection_enabled   = true
   soft_delete_retention_days = 7
   tags                       = var.tags
-}
-
-resource "azurerm_role_assignment" "runtime_key_vault" {
-  scope                            = azurerm_key_vault.main.id
-  role_definition_name             = "Key Vault Secrets User"
-  principal_id                     = azurerm_user_assigned_identity.runtime.principal_id
-  principal_type                   = "ServicePrincipal"
-  skip_service_principal_aad_check = true
 }
 
 resource "azurerm_role_assignment" "deployer_key_vault" {
@@ -244,8 +236,8 @@ resource "azurerm_cognitive_deployment" "model" {
     version = var.foundry_model_version
   }
 
-  scale {
-    type     = "GlobalStandard"
+  sku {
+    name     = "GlobalStandard"
     capacity = var.foundry_model_capacity
   }
 }
@@ -284,12 +276,11 @@ resource "azurerm_function_app_flex_consumption" "api" {
   instance_memory_in_mb  = 2048
   http_concurrency       = 20
 
-  https_only                      = true
-  public_network_access_enabled   = true
-  key_vault_reference_identity_id = azurerm_user_assigned_identity.runtime.id
+  https_only                    = true
+  public_network_access_enabled = true
 
   identity {
-    type         = "UserAssigned"
+    type         = "SystemAssigned, UserAssigned"
     identity_ids = [azurerm_user_assigned_identity.runtime.id]
   }
 
@@ -321,12 +312,19 @@ resource "azurerm_function_app_flex_consumption" "api" {
 
   depends_on = [
     azurerm_role_assignment.runtime_storage,
-    azurerm_role_assignment.runtime_key_vault,
     azurerm_role_assignment.runtime_foundry,
     azurerm_cosmosdb_sql_role_assignment.runtime,
   ]
 
   tags = var.tags
+}
+
+resource "azurerm_role_assignment" "function_key_vault" {
+  scope                            = azurerm_key_vault.main.id
+  role_definition_name             = "Key Vault Secrets User"
+  principal_id                     = azurerm_function_app_flex_consumption.api.identity[0].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
 }
 
 resource "azurerm_role_assignment" "github_contributor" {
