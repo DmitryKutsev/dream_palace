@@ -13,14 +13,16 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv sync --all-groups
+      - run: uv sync --frozen --group dev
+      - run: uv run ruff format --check .
       - run: uv run ruff check .
       - run: uv run pytest
+      - run: uv run python -m compileall -q function_app.py src hosted_agent/main.py
   terraform:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
-      - run: terraform -chdir=infra fmt -check
+      - run: terraform -chdir=infra fmt -check -diff
       - run: terraform -chdir=infra init -backend=false
       - run: terraform -chdir=infra validate

@@ -7,7 +7,6 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
-from dream_palace.agents.analysing_agent import run_analysis
 from dream_palace.service.telegram_client import TelegramClient
 from dream_palace.shared.domain import ApprovalStatus, IncomingMessage, UserContext
 
@@ -32,6 +31,10 @@ class Transcriber(Protocol):
     async def transcribe(self, media: bytes, media_type: str) -> str | None: ...
 
 
+class DreamAnalyst(Protocol):
+    async def analyse(self, question: str, dreams: list[dict[str, Any]]) -> str: ...
+
+
 class DreamService:
     """Every operation is bound to the Telegram id of the authenticated caller."""
 
@@ -42,13 +45,13 @@ class DreamService:
         store: UserDreamStore,
         clerk: TelegramClient,
         admins: frozenset[int],
-        model: str,
+        analyst: DreamAnalyst | None = None,
         transcriber: Transcriber | None = None,
     ) -> None:
         self.store = store
         self.clerk = clerk
         self.admins = admins
-        self.model = model
+        self.analyst = analyst
         self.transcriber = transcriber
 
     async def register(self, telegram_id: int, username: str, email: str) -> None:
@@ -101,12 +104,18 @@ class DreamService:
         context = UserContext(telegram_id=telegram_id)
         if not self.store.is_approved(context):
             raise PermissionError("user is not approved")
-        try:
-            analysis = await run_analysis(self.model, self.store, context, question)
-            if analysis.strip():
-                return analysis
-        except Exception:  # model unavailable — fall back to a deterministic summary
-            pass
+        if self.analyst is not None:
+            dreams = self.store.list_dreams(
+                context,
+                since=datetime.now(UTC) - timedelta(days=days),
+                limit=50,
+            )
+            try:
+                analysis = await self.analyst.analyse(question, dreams)
+                if analysis.strip():
+                    return analysis
+            except Exception:  # hosted agent unavailable — deterministic summary remains usable
+                pass
         return self._fallback_summary(context, days)
 
     def _fallback_summary(self, context: UserContext, days: int) -> str:

@@ -1,6 +1,6 @@
-.PHONY: install lint format test check run terraform-fmt
+.PHONY: install lint format test check run agent-run terraform-fmt
 install:
-	uv sync --all-groups
+	uv sync --group dev
 lint:
 	uv run ruff check .
 format:
@@ -10,5 +10,7 @@ test:
 check: lint test terraform-fmt
 run:
 	uv run uvicorn dream_palace.app:app --reload --port 8080
+agent-run:
+	azd ai agent run
 terraform-fmt:
 	terraform fmt -check -recursive infra

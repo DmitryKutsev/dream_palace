@@ -2,27 +2,40 @@
 
 ## Decisions and invariants
 
-- Telegram is the initial client: Clerk handles registration/approval; Dreamer handles text, voice, and images.
-- Telegram ID is the tenant key. It comes from the authenticated Telegram update and is never accepted from an agent/model argument.
-- Firestore stores users, approvals, and dream metadata. A Firebase-managed GCS bucket stores binary media under `users/{telegram_id}/...`.
-- The orchestrator routes only explicit retrieval and analysis requests; every uncertain input is stored as a dream.
-- Analysis returns dreams chronologically and highlights significant people, names, and recurring characters.
-- Google ADK agents run on managed Google infrastructure. Terraform manages cloud resources; GitHub Actions uses keyless Workload Identity Federation.
+- Telegram is the initial client for registration, approval, dream capture,
+  retrieval, and analysis.
+- Telegram ID is the tenant key. It comes from the authenticated Telegram
+  update or signed Mini App `initData`; it is never accepted from an agent.
+- Cosmos DB stores users, approvals, and dream metadata. Blob Storage stores
+  media under `users/{telegram_id}/dreams/{dream_id}/...`.
+- The Function retrieves a user's journal before calling Microsoft Foundry. The
+  hosted agent has no datastore credentials and cannot choose a tenant.
+- Azure resources use managed identities. Bot credentials remain in Key Vault,
+  outside Terraform state and GitHub secrets.
+- The public HTTP edge runs on Azure Functions Flex Consumption. Application
+  Insights and Log Analytics provide runtime telemetry.
 
 ## Delivery phases
 
-1. Foundation: UV package, domain types, configuration, Make targets, linting, and pytest.
-2. Identity: Clerk registration conversation, admin approval commands, audit trail, and approval notifications.
-3. Ingestion: text/image/voice downloads, validation, transcription, image understanding, idempotency, and storage.
-4. Agents: ADK classifier/orchestrator, retrieval tools, chronological analysis, entity extraction, and recurrence scoring.
-5. Platform: Firebase bootstrap, GCS lifecycle, Secret Manager, hosted runtime, logging, alerts, and budgets.
-6. Hardening: Firestore rules, emulator integration tests, prompt-injection tests, deletion/export, retention, and privacy review.
-7. Release: staging, end-to-end Telegram tests, admin runbook, disaster recovery, and controlled rollout.
+1. Foundation: uv package, domain types, configuration, linting, and pytest.
+2. Identity: Telegram registration, approval commands, and approval notices.
+3. Ingestion: text and media download, validation, idempotency, and storage.
+4. Agents: Foundry hosted analyst, grounded chronological analysis, and
+   deterministic fallback.
+5. Platform: Flex Consumption, Cosmos DB serverless, Blob Storage, Key Vault,
+   managed identities, logging, alerts, and budgets.
+6. Migration: dry run, copy, validation, webhook cutover, and rollback window.
+7. Hardening: deletion/export, retention, privacy review, load tests, and
+   recovery exercises.
 
 ## Re-check findings
 
-- “Firebase free tier GCS storage” spans two services: Firestore fits structured records; the Firebase/GCS bucket fits voice/image objects. Verify free-tier limits for the deployment region.
-- Telegram usernames are mutable and optional. Telegram ID is the unique identity; email and username are profile fields.
-- Agent prompts cannot enforce isolation. Python constructs storage paths from `UserContext.telegram_id`, with cross-user tests.
-- Classification false positives could expose data. Only explicit retrieve/analyse prefixes leave the safe dream-storage default.
-- Cloud Run deployment and authenticated Telegram webhook handling are scaffolded. Agent Engine deployment still requires the GCP project, target, bot secrets, and environment policy.
+- Agent prompts are not an authorization boundary. The application filters
+  records by authenticated `UserContext` before any model invocation.
+- Telegram usernames are mutable and optional; Telegram ID remains the unique
+  account key.
+- Flex Consumption and Foundry hosted agents have separate scaling and billing
+  models. Cold-start and quota behavior must be measured with production-like
+  traffic.
+- Hosted-agent source deployment is a preview feature, so region and API
+  availability must be rechecked before each production rollout.

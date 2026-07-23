@@ -7,12 +7,17 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     bot_token: str
     admin_telegram_ids: str
-    google_cloud_project: str
-    firebase_storage_bucket: str
-    adk_model: str = "gemini-2.0-flash"
     webhook_secret: str
     webapp_url: str = ""
-    google_api_key: str = ""
+    azure_client_id: str = ""
+    azure_storage_account_url: str
+    azure_storage_container: str = "dream-media"
+    cosmos_endpoint: str
+    cosmos_database_name: str = "dream-palace"
+    cosmos_users_container: str = "users"
+    cosmos_dreams_container: str = "dreams"
+    foundry_project_endpoint: str
+    foundry_agent_name: str = "dream-analyst"
 
     @property
     def admins(self) -> frozenset[int]:

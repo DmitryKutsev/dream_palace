@@ -54,7 +54,7 @@ class StubClerk:
 
 def make_service(approved: set[int]) -> tuple[DreamService, FakeStore, StubClerk]:
     store, clerk = FakeStore(approved), StubClerk()
-    return DreamService(store, clerk, frozenset({99}), "test-model"), store, clerk
+    return DreamService(store, clerk, frozenset({99})), store, clerk
 
 
 async def test_unapproved_user_is_rejected() -> None:
@@ -108,6 +108,42 @@ def test_listing_defaults_to_five_dreams() -> None:
     service, store, _ = make_service({42})
     store.dreams[42] = [{"text": f"dream {i}"} for i in range(9)]
     assert len(service.list_dreams(42)) == 5
+
+
+async def test_analysis_sends_only_the_active_users_dreams() -> None:
+    class CapturingAnalyst:
+        dreams: list[dict[str, Any]] = []
+
+        async def analyse(self, question: str, dreams: list[dict[str, Any]]) -> str:
+            assert question == "What repeats?"
+            self.dreams = dreams
+            return "Water repeats."
+
+    service, store, _ = make_service({42})
+    analyst = CapturingAnalyst()
+    service.analyst = analyst
+    store.dreams[42] = [{"id": "mine", "text": "blue water"}]
+    store.dreams[7] = [{"id": "other", "text": "another user's secret"}]
+
+    assert await service.analyse(42, "What repeats?") == "Water repeats."
+    assert analyst.dreams == [{"id": "mine", "text": "blue water"}]
+
+
+async def test_analysis_falls_back_when_hosted_agent_is_unavailable() -> None:
+    class UnavailableAnalyst:
+        async def analyse(self, question: str, dreams: list[dict[str, Any]]) -> str:
+            raise ConnectionError("Foundry is unavailable")
+
+    service, store, _ = make_service({42})
+    service.analyst = UnavailableAnalyst()
+    store.dreams[42] = [
+        {"text": "blue ocean"},
+        {"text": "blue house"},
+    ]
+
+    assert await service.analyse(42, "What repeats?") == (
+        "2 dreams in the last 30 days. Recurring terms: blue."
+    )
 
 
 async def test_registration_notifies_admins() -> None:
